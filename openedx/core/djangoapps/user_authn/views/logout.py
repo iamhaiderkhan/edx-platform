@@ -18,8 +18,9 @@ from openedx.core.djangoapps.user_authn.utils import is_safe_login_or_logout_red
 
 from third_party_auth.saml import SAMLAuthBackend
 
-SAML_BACKEND = 'tpa-saml' # Keyclock Saml Backend
-LEARNING_PORTAL = 'http://localhost:8734' # Learning portal local domain name.
+SAML_BACKEND = 'tpa-saml'  # Keyclock Saml Backend
+LEARNING_PORTAL = 'http://localhost:8734'  # Learning portal local domain name.
+LMS_HOST = 'http://localhost:18000/'
 
 
 class LogoutView(TemplateView):
@@ -147,7 +148,10 @@ class LogoutView(TemplateView):
             'target': target,
             'logout_uris': logout_uris,
             'enterprise_target': self._is_enterprise_target(target),
-            'saml_logout_url': self.saml_auth_backend.generate_saml_config()['sp']['entityId'].encode() + '/protocol/openid-connect/logout?redirect_uri=http%3A%2F%2Flocalhost%3A18000%2F',
+            'saml_logout_url': '{}/protocol/openid-connect/logout?redirect_uri={}'.format(
+                self.saml_auth_backend.generate_saml_config()['sp']['entityId'].encode(),
+                urlencode(LMS_HOST)
+            ),
             'saml_logout': self.is_saml_logout
         })
 
