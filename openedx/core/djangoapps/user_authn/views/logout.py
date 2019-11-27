@@ -16,6 +16,11 @@ from six.moves.urllib.parse import parse_qs, urlsplit, urlunsplit  # pylint: dis
 from openedx.core.djangoapps.user_authn.cookies import delete_logged_in_cookies
 from openedx.core.djangoapps.user_authn.utils import is_safe_login_or_logout_redirect
 
+from third_party_auth.saml import SAMLAuthBackend
+
+SAML_BACKEND = 'tpa-saml' # Keyclock Saml Backend
+LEARNING_PORTAL = 'http://localhost:8734' # Learning portal local domain name.
+
 
 class LogoutView(TemplateView):
     """
@@ -26,9 +31,11 @@ class LogoutView(TemplateView):
     """
     oauth_client_ids = []
     template_name = 'logout.html'
-
+    auth_backend = ''
+    saml_auth_backend = SAMLAuthBackend()
     # Keep track of the page to which the user should ultimately be redirected.
     default_target = '/'
+    is_saml_logout = False
 
     def post(self, request, *args, **kwargs):
         """
@@ -70,7 +77,7 @@ class LogoutView(TemplateView):
 
         # Get the list of authorized clients before we clear the session.
         self.oauth_client_ids = request.session.get(edx_oauth2_provider.constants.AUTHORIZED_CLIENTS_SESSION_KEY, [])
-
+        self.auth_backend = request.session._session_cache.get('social_auth_last_login_backend', '').encode()
         logout(request)
 
         # If we are using studio logout directly and there is not OIDC logouts we can just redirect the user
@@ -132,12 +139,16 @@ class LogoutView(TemplateView):
             # avoiding a double-logout.
             if not referrer or (referrer and not uri.startswith(referrer)):
                 logout_uris.append(self._build_logout_url(uri))
+        if referrer == LEARNING_PORTAL and self.auth_backend == SAML_BACKEND:
+            self.is_saml_logout = True
 
         target = self.target
         context.update({
             'target': target,
             'logout_uris': logout_uris,
             'enterprise_target': self._is_enterprise_target(target),
+            'saml_logout_url': self.saml_auth_backend.generate_saml_config()['sp']['entityId'].encode() + '/protocol/openid-connect/logout?redirect_uri=http%3A%2F%2Flocalhost%3A18000%2F',
+            'saml_logout': self.is_saml_logout
         })
 
         return context
