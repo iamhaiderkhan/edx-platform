@@ -15,13 +15,12 @@ from six.moves.urllib.parse import parse_qs, urlsplit, urlunsplit  # pylint: dis
 
 from openedx.core.djangoapps.user_authn.cookies import delete_logged_in_cookies
 from openedx.core.djangoapps.user_authn.utils import is_safe_login_or_logout_redirect
-
+import json
 from third_party_auth.saml import SAMLAuthBackend
 from third_party_auth import pipeline, provider
 import third_party_auth
 SAML_BACKEND = 'tpa-saml'  # Keyclock Saml Backend
 LEARNING_PORTAL = 'http://localhost:8734'  # Learning portal local domain name.
-KEY_CLOCK_LOGOUT_URL ='{}/protocol/openid-connect/logout?redirect_uri={}'
 
 
 class LogoutView(TemplateView):
@@ -153,8 +152,8 @@ class LogoutView(TemplateView):
             'target': target,
             'logout_uris': logout_uris,
             'enterprise_target': self._is_enterprise_target(target),
-            'saml_logout_url': KEY_CLOCK_LOGOUT_URL.format(
-                self.saml_auth_backend.get_idp(self.third_party_provider.slug.encode()).conf['entity_id'].encode(),
+            'saml_logout_url': '{}?/redirect_uri={}'.format(
+                json.loads(self.third_party_provider.other_settings)['logout_url'].encode(),
                 urlencode(settings.LMS_ROOT_URL)
             ),
             'saml_logout': self.is_saml_logout
