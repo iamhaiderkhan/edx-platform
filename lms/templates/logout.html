@@ -31,8 +31,9 @@
         </p>
     {% if saml_logout %}
         <p id="saml" data-required={{saml_logout}} style="text-align: center; margin-bottom: 20px;">
-            {% blocktrans %}
-            "If you want to delete the SAML SSO session, " <a href={{saml_logout_url}}>please click here</a>
+            {% blocktrans trimmed asvar saml_logout_msg %}
+            If you want to delete the SAML SSO session, {start_anchor} please click here {end_anchor}.
+            {% interpolate_html saml_logout_msg start_anchor='<a href="'|add:saml_logout_url|add:'">'|safe end_anchor='</a>'|safe %}
             {% endblocktrans %}
         </p>
     {% endif %}
