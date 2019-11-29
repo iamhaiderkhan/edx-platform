@@ -11,7 +11,7 @@
         var $iframeContainer = $('#iframeContainer'),
             $iframes = $iframeContainer.find('iframe'),
             redirectUrl = $iframeContainer.data('redirect-url');
-        var isSamlRequired = document.getElementsByClassName("saml")[0] ? true : false
+        var isSamlRequired = $("#saml")[0] ? true : false
 
         if ($iframes.length === 0 && !isSamlRequired) {
             window.location = redirectUrl;

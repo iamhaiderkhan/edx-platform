@@ -30,8 +30,10 @@
             {% interpolate_html signout_msg1 start_anchor='<a href="'|add:target|add:'">'|safe end_anchor='</a>'|safe %}
         </p>
     {% if saml_logout %}
-        <p class="saml" data-required={{saml_logout}} style="text-align: center; margin-bottom: 20px;">
+        <p id="saml" data-required={{saml_logout}} style="text-align: center; margin-bottom: 20px;">
+            {% blocktrans %}
             "If you want to delete the SAML SSO session, " <a href={{saml_logout_url}}>please click here</a>
+            {% endblocktrans %}
         </p>
     {% endif %}
     {% endif %}

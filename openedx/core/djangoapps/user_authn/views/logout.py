@@ -17,10 +17,11 @@ from openedx.core.djangoapps.user_authn.cookies import delete_logged_in_cookies
 from openedx.core.djangoapps.user_authn.utils import is_safe_login_or_logout_redirect
 
 from third_party_auth.saml import SAMLAuthBackend
-
+from third_party_auth import pipeline, provider
+import third_party_auth
 SAML_BACKEND = 'tpa-saml'  # Keyclock Saml Backend
 LEARNING_PORTAL = 'http://localhost:8734'  # Learning portal local domain name.
-LMS_HOST = 'http://localhost:18000/'
+KEY_CLOCK_LOGOUT_URL ='{}/protocol/openid-connect/logout?redirect_uri={}'
 
 
 class LogoutView(TemplateView):
@@ -37,6 +38,7 @@ class LogoutView(TemplateView):
     # Keep track of the page to which the user should ultimately be redirected.
     default_target = '/'
     is_saml_logout = False
+    third_party_provider = ''
 
     def post(self, request, *args, **kwargs):
         """
@@ -75,10 +77,13 @@ class LogoutView(TemplateView):
     def dispatch(self, request, *args, **kwargs):
         # We do not log here, because we have a handler registered to perform logging on successful logouts.
         request.is_from_logout = True
-
+        if third_party_auth.is_enabled() and pipeline.running(request):
+            running_pipeline = pipeline.get(request)
+            self.third_party_provider = provider.Registry.get_from_pipeline(running_pipeline)
+            self.auth_backend = request.session._session_cache.get('social_auth_last_login_backend', '').encode()
         # Get the list of authorized clients before we clear the session.
         self.oauth_client_ids = request.session.get(edx_oauth2_provider.constants.AUTHORIZED_CLIENTS_SESSION_KEY, [])
-        self.auth_backend = request.session._session_cache.get('social_auth_last_login_backend', '').encode()
+
         logout(request)
 
         # If we are using studio logout directly and there is not OIDC logouts we can just redirect the user
@@ -148,9 +153,9 @@ class LogoutView(TemplateView):
             'target': target,
             'logout_uris': logout_uris,
             'enterprise_target': self._is_enterprise_target(target),
-            'saml_logout_url': '{}/protocol/openid-connect/logout?redirect_uri={}'.format(
-                self.saml_auth_backend.generate_saml_config()['sp']['entityId'].encode(),
-                urlencode(LMS_HOST)
+            'saml_logout_url': KEY_CLOCK_LOGOUT_URL.format(
+                self.saml_auth_backend.get_idp(self.third_party_provider.slug.encode()).conf['entity_id'].encode(),
+                urlencode(settings.LMS_ROOT_URL)
             ),
             'saml_logout': self.is_saml_logout
         })
