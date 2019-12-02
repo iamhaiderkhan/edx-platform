@@ -38,6 +38,7 @@ class LogoutView(TemplateView):
     default_target = '/'
     is_saml_logout = False
     third_party_provider = ''
+    saml_logout_url = ''
 
     def post(self, request, *args, **kwargs):
         """
@@ -79,7 +80,8 @@ class LogoutView(TemplateView):
         if third_party_auth.is_enabled() and pipeline.running(request):
             running_pipeline = pipeline.get(request)
             self.third_party_provider = provider.Registry.get_from_pipeline(running_pipeline)
-            self.auth_backend = request.session._session_cache.get('social_auth_last_login_backend', '').encode()
+            self.auth_backend = self.third_party_provider.backend_name
+            self.saml_logout_url = self.third_party_provider.get_config().conf['logout_url']
         # Get the list of authorized clients before we clear the session.
         self.oauth_client_ids = request.session.get(edx_oauth2_provider.constants.AUTHORIZED_CLIENTS_SESSION_KEY, [])
 
@@ -152,10 +154,7 @@ class LogoutView(TemplateView):
             'target': target,
             'logout_uris': logout_uris,
             'enterprise_target': self._is_enterprise_target(target),
-            'saml_logout_url': '{}?/redirect_uri={}'.format(
-                json.loads(self.third_party_provider.other_settings)['logout_url'].encode(),
-                urlencode(settings.LMS_ROOT_URL)
-            ),
+            'saml_logout_url': '{}?{}'.format(self.saml_logout_url, urlencode({'redirect_uri': settings.LMS_ROOT_URL})),
             'saml_logout': self.is_saml_logout
         })
 
