@@ -15,6 +15,12 @@ from six.moves.urllib.parse import parse_qs, urlsplit, urlunsplit  # pylint: dis
 
 from openedx.core.djangoapps.user_authn.cookies import delete_logged_in_cookies
 from openedx.core.djangoapps.user_authn.utils import is_safe_login_or_logout_redirect
+import json
+from third_party_auth.saml import SAMLAuthBackend
+from third_party_auth import pipeline, provider
+import third_party_auth
+SAML_BACKEND = 'tpa-saml'  # Keyclock Saml Backend
+
 
 
 class LogoutView(TemplateView):
@@ -26,9 +32,13 @@ class LogoutView(TemplateView):
     """
     oauth_client_ids = []
     template_name = 'logout.html'
-
+    auth_backend = ''
+    saml_auth_backend = SAMLAuthBackend()
     # Keep track of the page to which the user should ultimately be redirected.
     default_target = '/'
+    is_saml_logout = False
+    third_party_provider = ''
+    saml_logout_url = ''
 
     def post(self, request, *args, **kwargs):
         """
@@ -67,7 +77,11 @@ class LogoutView(TemplateView):
     def dispatch(self, request, *args, **kwargs):
         # We do not log here, because we have a handler registered to perform logging on successful logouts.
         request.is_from_logout = True
-
+        if third_party_auth.is_enabled() and pipeline.running(request):
+            running_pipeline = pipeline.get(request)
+            self.third_party_provider = provider.Registry.get_from_pipeline(running_pipeline)
+            self.auth_backend = self.third_party_provider.backend_name
+            self.saml_logout_url = self.third_party_provider.get_config().conf.get('logout_url', '')
         # Get the list of authorized clients before we clear the session.
         self.oauth_client_ids = request.session.get(edx_oauth2_provider.constants.AUTHORIZED_CLIENTS_SESSION_KEY, [])
 
@@ -132,12 +146,16 @@ class LogoutView(TemplateView):
             # avoiding a double-logout.
             if not referrer or (referrer and not uri.startswith(referrer)):
                 logout_uris.append(self._build_logout_url(uri))
+        if referrer == settings.LEARNING_PORTAL_ROOT_URL and self.auth_backend == SAML_BACKEND:
+            self.is_saml_logout = True
 
         target = self.target
         context.update({
             'target': target,
             'logout_uris': logout_uris,
             'enterprise_target': self._is_enterprise_target(target),
+            'saml_logout_url': '{}?{}'.format(self.saml_logout_url, urlencode({'redirect_uri': settings.LMS_ROOT_URL})),
+            'saml_logout': self.is_saml_logout
         })
 
         return context

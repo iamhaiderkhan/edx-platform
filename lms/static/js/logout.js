@@ -11,13 +11,16 @@
         var $iframeContainer = $('#iframeContainer'),
             $iframes = $iframeContainer.find('iframe'),
             redirectUrl = $iframeContainer.data('redirect-url');
+        var isSamlRequired = $("#saml")[0] ? true : false
 
-        if ($iframes.length === 0) {
+        if ($iframes.length === 0 && !isSamlRequired) {
             window.location = redirectUrl;
         }
 
         $iframes.allLoaded(function() {
+           if(!isSamlRequired) {
             window.location = redirectUrl;
+         }
         });
     });
 }(jQuery));
