@@ -28,6 +28,8 @@ class LogoutTests(TestCase):
         super(LogoutTests, self).setUp()
         self.user = UserFactory()
         self.client.login(username=self.user.username, password='test')
+        self.saml_backend = 'tpa-saml'
+        self.learning_portal_root_url = 'http://localhost:8734/'
 
     def _create_oauth_client(self):
         """ Creates a trusted OAuth client. """
@@ -181,3 +183,19 @@ class LogoutTests(TestCase):
             'target': '/',
         }
         self.assertDictContainsSubset(expected, response.context_data)
+
+    @patch('openedx.core.djangoapps.user_authn.views.logout.pipeline')
+    @patch('openedx.core.djangoapps.user_authn.views.logout.provider')
+    def test_saml_logout_with_learning_portal(self, mock_provider, mock_pipeline):
+        mock_pipeline.running.return_value = True
+        mock_provider.Registry.get_from_pipeline.return_value = Mock(backend_name=self.saml_backend)
+        response = self.client.get(reverse('logout'), {}, HTTP_REFERER=self.learning_portal_root_url)
+        self.assertIsNotNone(response)
+        self.assertIsInstance(response.context_data, dict)
+        self.assertEqual(response.context_data.get('saml_logout'), True)
+
+    def test_saml_logout_without_learning_portal(self):
+        response = self.client.get(reverse('logout'))
+        self.assertIsNotNone(response)
+        self.assertIsInstance(response.context_data, dict)
+        self.assertEqual(response.context_data.get('saml_logout'), False)
