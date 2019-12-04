@@ -72,6 +72,7 @@ ENABLE_JASMINE = False
 LMS_ROOT_URL = 'https://localhost:18000'
 LMS_INTERNAL_ROOT_URL = LMS_ROOT_URL
 LMS_ENROLLMENT_API_PATH = "/api/enrollment/v1/"
+LEARNING_PORTAL_ROOT_URL = 'http://localhost:8734'
 
 # Default choices for role dropdown in the membership tab of the instructor dashboard
 # This setting is used when a site does not define its own choices via site configuration

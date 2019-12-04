@@ -20,7 +20,7 @@ from third_party_auth.saml import SAMLAuthBackend
 from third_party_auth import pipeline, provider
 import third_party_auth
 SAML_BACKEND = 'tpa-saml'  # Keyclock Saml Backend
-LEARNING_PORTAL = 'http://localhost:8734'  # Learning portal local domain name.
+
 
 
 class LogoutView(TemplateView):
@@ -146,7 +146,7 @@ class LogoutView(TemplateView):
             # avoiding a double-logout.
             if not referrer or (referrer and not uri.startswith(referrer)):
                 logout_uris.append(self._build_logout_url(uri))
-        if referrer == LEARNING_PORTAL and self.auth_backend == SAML_BACKEND:
+        if referrer == settings.LEARNING_PORTAL_ROOT_URL and self.auth_backend == SAML_BACKEND:
             self.is_saml_logout = True
 
         target = self.target

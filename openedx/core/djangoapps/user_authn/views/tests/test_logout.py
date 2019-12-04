@@ -29,7 +29,7 @@ class LogoutTests(TestCase):
         self.user = UserFactory()
         self.client.login(username=self.user.username, password='test')
         self.saml_backend = 'tpa-saml'
-        self.learning_portal_root_url = 'http://localhost:8734/'
+
 
     def _create_oauth_client(self):
         """ Creates a trusted OAuth client. """
@@ -189,7 +189,7 @@ class LogoutTests(TestCase):
     def test_saml_logout_with_learning_portal(self, mock_provider, mock_pipeline):
         mock_pipeline.running.return_value = True
         mock_provider.Registry.get_from_pipeline.return_value = Mock(backend_name=self.saml_backend)
-        response = self.client.get(reverse('logout'), {}, HTTP_REFERER=self.learning_portal_root_url)
+        response = self.client.get(reverse('logout'), {}, HTTP_REFERER=settings.LEARNING_PORTAL_ROOT_URL)
         self.assertIsNotNone(response)
         self.assertIsInstance(response.context_data, dict)
         self.assertEqual(response.context_data.get('saml_logout'), True)
