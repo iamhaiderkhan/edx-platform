@@ -81,7 +81,7 @@ class LogoutView(TemplateView):
             running_pipeline = pipeline.get(request)
             self.third_party_provider = provider.Registry.get_from_pipeline(running_pipeline)
             self.auth_backend = self.third_party_provider.backend_name
-            self.saml_logout_url = self.third_party_provider.get_config().conf['logout_url']
+            self.saml_logout_url = self.third_party_provider.get_config().conf.get('logout_url', '')
         # Get the list of authorized clients before we clear the session.
         self.oauth_client_ids = request.session.get(edx_oauth2_provider.constants.AUTHORIZED_CLIENTS_SESSION_KEY, [])
 
